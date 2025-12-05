@@ -36,7 +36,7 @@ python main.py --group 0 --epochs 50
 # SISA-style with 5 groups
 python main.py --group 5 --epochs 50
 
-# Unlearning on a specific group (if supported)
+# Unlearning on a specific group 
 python main.py --group 5 --epochs 30 --unlearn_group 1
 
 
