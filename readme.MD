@@ -90,14 +90,14 @@ python main.py --group 5 --epochs 20 --unlearn_group 2 > results/unlearn_g2.log
 
 -----
 
-## Ideas to work on : (GPT Just kept ; we can explore and include easy parts)
+## Ideas to work on : (include what can be done from this )
 
   * **The shrad based comparison**
   * **Case studies exploration forgetting groups/users etc (to be figured out)** . We need to add graphs and results
   * **Any original feature improvement /simple multi-agentic etc**
   * **Show a simple attacker trying to infer whether a user was in training.** After unlearning, show reduced membership advantage. This or some attacks to show the difference in  movie recommendations after unlearning via metrics. (I think we should focus here)
 
-### Valuable metrics to compute & plot
+### Valuable metrics to compute & plot (some of these especially quality ones)
 
   * **Model quality:** Accuracy (for your binary setup), but better: Precision@K, Recall@K, NDCG@K, HitRate@K. Use K = 5, 10.
   * **Unlearning cost:** wall-clock retrain time (seconds), CPU/GPU utilization, number of parameters retrained.
@@ -106,7 +106,7 @@ python main.py --group 5 --epochs 20 --unlearn_group 2 > results/unlearn_g2.log
   * **Influence:** how many recommendations changed per unlearn request (count of changed top-K lists).
   * **Stability:** variability across seeds (put error bars).
 
-### Good plots:
+### Good plots: (some can be added)
 
   * Accuracy vs Number of Shards (with error bars).
   * Retrain time vs Number of Shards.
@@ -125,7 +125,7 @@ python main.py --group 5 --epochs 20 --unlearn_group 2 > results/unlearn_g2.log
 
 -----
 
-## Improvements
+## Improvements (GPT just for reference so that we can add originality as we need to make it a bit different from original paper . Choose and explore if)
 
 ### Core / required improvements (makes your prototype solid)
 
