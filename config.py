@@ -1,41 +1,42 @@
 # config.py
 import os
-import numpy as np
+from dataclasses import dataclass, field
+
 import torch
 
+
+@dataclass
 class Config:
-    def __init__(self):
-        # Dataset configuration
-        self.dataset = 'ml1m'
-        self.data_path = './data/ml1m/'
+    """Central project configuration with sensible defaults for experiments."""
 
-        # Model parameters
-        self.num_factors = 20  # latent dims
-        self.lr = 0.01
-        self.reg = 1e-4
-        self.epochs_per_slice = 5   # epochs to run for each slice (keeps training time reasonable)
-        self.batch_size = 512
+    dataset: str = 'ml1m'
+    data_path: str = './data/ml1m/'
 
-        # SISA / unlearning parameters
-        self.num_groups = 5       # number of shards
-        self.num_slices = 2       # slices per shard (simple default)
-        self.del_percentage = 2
-        self.del_type = 'rand'    # 'rand' or 'targeted'
+    num_factors: int = 20
+    lr: float = 0.01
+    reg: float = 1e-4
+    epochs_per_slice: int = 5
+    batch_size: int = 512
 
-        # Training settings / reproducibility
-        self.seed = 42
-        self.verbose = 1
+    num_groups: int = 5
+    num_slices: int = 2
+    del_percentage: int = 2
+    del_type: str = 'rand'
 
-        # Device selection (robust for Mac M-series)
+    seed: int = 42
+    verbose: int = 1
+    device: str = field(init=False)
+    checkpoint_dir: str = './checkpoints'
+
+    def __post_init__(self):
         if torch.cuda.is_available():
             self.device = 'cuda'
-        elif getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
+        elif getattr(torch.backends, 'mps', None) and torch.backends.mps.is_available():
             self.device = 'mps'
         else:
             self.device = 'cpu'
 
-        # Where to save shard models / checkpoints
-        self.checkpoint_dir = './checkpoints'
         os.makedirs(self.checkpoint_dir, exist_ok=True)
+
 
 config = Config()
