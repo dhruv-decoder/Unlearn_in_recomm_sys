@@ -1,3 +1,4 @@
+# SISA-based Machine Unlearning for Recommender Systems
 
 This project investigated the problem of machine unlearning in recommendation systems,
 focusing on how user data can be efficiently removed while preserving recommendation quality,
@@ -36,65 +37,92 @@ SISA remain theoretically appealing due to their stronger retraining guarantees,
 limitations and user-level side effects present significant challenges for deployment in large-
 scale recommendation platforms.
 
-## How to Run
+This repository explores machine unlearning in recommendation systems using the MovieLens-1M dataset. The main goal is to compare traditional full retraining against SISA-style shard-level unlearning for matrix-factorization-based recommenders.
 
-### Basic pipeline (default config):
+## What is inside this repo
 
-```bash
-python config.py      # optional: check config
-python read.py        # load and preprocess data
-python group.py       # create groups/shards
-python main.py        # train and run unlearning
-````
+- Main experiment flow and MF recommendation model: [main.py](main.py)
+- Dataset loading and preprocessing: [read.py](read.py)
+- User sharding strategies: [group.py](group.py)
+- Reproducible experiment configuration: [config.py](config.py)
+- Structured experiment runner and JSON summary export: [experiment_runner.py](experiment_runner.py)
+- Reusable plotting/reporting helpers: [reporting.py](reporting.py)
+- Plot generation entry point: [plots.py](plots.py)
+- Extra analysis scripts: [mia_test.py](mia_test.py), [malicious_injection.py](malicious_injection.py)
+- Lightweight regression test: [tests/test_reporting.py](tests/test_reporting.py)
 
-### Examples :
+## Project goals
 
-```bash
-# Full model (no grouping)
-python main.py --group 0 --epochs 50
+The project focuses on three practical questions:
 
-# SISA-style with 5 groups
-python main.py --group 5 --epochs 50
+1. How much time does full retraining take after forgetting a user group?
+2. How much time does shard-only retraining take in a SISA-style setup?
+3. How do recommendation quality and privacy-related indicators change before and after unlearning?
 
-# Unlearning on a specific group 
-python main.py --group 5 --epochs 30 --unlearn_group 1
-```
+## Quick start
 
-### Output I got for baseline
-
-```text
-Loading data...
-Number of users: 6040
-Number of items: 3706
-Training samples: 800167
-Test samples: 200042
-
-Creating 5 groups...
-
-Training initial model...
-Initial test accuracy: 0.4784
-
-Performing SISA unlearning on group 1
-Original training samples: 800167
-Remaining training samples: 631171
-Test accuracy after unlearning: 0.4727
-```
-
-This shows baseline performance and the effect of unlearning on a selected shard.
-
-
-### Run Commands for Demo
+### 1. Install dependencies
 
 ```bash
-# baseline
-python main.py --group 0 --epochs 20 > results/baseline.log
-
-# SISA (S=5)
-python main.py --group 5 --epochs 20 > results/sisa5.log
-
-# targeted unlearn group 2
-python main.py --group 5 --epochs 20 --unlearn_group 2 > results/unlearn_g2.log
+pip install -r requirements.txt
 ```
 
-Notebook attached for reference for GA method 
+### 2. Run a baseline experiment
+
+```bash
+python main.py --action baseline_full --num-groups 2 --num-slices 1 --k 5
+```
+
+### 3. Run the SISA comparison experiment
+
+```bash
+python main.py --action compare_unlearn --shard-method kmeans --num-groups 5 --num-slices 2 --k 5
+```
+
+### 4. Run the full experiment sweep
+
+```bash
+python experiment_runner.py
+```
+
+This writes:
+
+- `experiment_results.csv` for tabular summaries
+- `experiment_summary.json` for structured metadata
+- `logs/*.log` for raw run output
+- `plots/*.png` for charts
+
+## Plotting and reporting
+
+The reporting flow now uses [reporting.py](reporting.py) and [plots.py](plots.py) to generate reusable charts from the saved experiment summaries.
+
+```bash
+python plots.py
+```
+
+## Testing
+
+A small regression test is included to validate the reporting utility:
+
+```bash
+python -m unittest discover -s tests
+```
+
+## Notes on the current workflow
+
+- The main recommendation model is a matrix factorization baseline implemented in [main.py](main.py).
+- The sharding logic supports `kmeans`, `random`, and `stratified` grouping strategies in [group.py](group.py).
+- The project now separates experiment execution, structured result export, and plotting into cleaner modules.
+
+## Expected output
+
+Running the experiment pipeline produces comparison metrics such as:
+
+- baseline training time
+- naive retrain time after deletion
+- SISA train time
+- SISA unlearning time
+- Precision@5 / NDCG@5 before and after unlearning
+
+This makes it easier to compare the cost and utility trade-offs of naive retraining versus shard-local unlearning.
 
