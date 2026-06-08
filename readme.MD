@@ -1,24 +1,40 @@
 
-# SISA-style Training Pipeline on MovieLens 1M
+This project investigated the problem of machine unlearning in recommendation systems,
+focusing on how user data can be efficiently removed while preserving recommendation quality,
+privacy, and overall system stability. Using the MovieLens-1M dataset, we compared exact
+unlearning methods based on SISA-style retraining with approximate optimization-based
+approaches such as Gradient Ascent (GA) and Gradient Difference (GradDiff) across both
+Matrix Factorization (MF) and transformer-based SASRec recommendation models.
 
-This repository implements a SISA-style training pipeline on the MovieLens 1M dataset.  
-The data is partitioned into shards (groups); for each configuration we train a matrix factorization model and simulate targeted “forget” (unlearning) by removing all data from a chosen shard and retraining only on the remaining data.
+The experimental results reveal a clear trade-off between privacy guarantees, computational
+efficiency, and recommendation stability. Exact unlearning methods such as full retraining and
+SISA successfully remove the influence of forgotten data, but often introduce high
+computational overhead and significant disruption to recommendation behavior. In particular,
+user-level drift analysis showed that these methods frequently alter recommendation lists for a
+large number of users, including users unrelated to the deletion request. The fairness analysis
+further demonstrated that low-activity users are disproportionately affected by exact unlearning
+approaches, indicating that data removal can create uneven impacts across different user groups.
 
-> **Note:** This is a *SISA-style* implementation focused on sharding and unlearning experiments, not a full production SISA system with all optimizations from the original paper.
+Approximate unlearning methods produced more balanced results overall. Gradient Ascent
+consistently achieved strong privacy performance while maintaining stable recommendation
+quality and substantially lower unlearning time compared to exact retraining methods. The
+results also showed that transformer-based sequential recommendation models respond
+particularly well to approximate unlearning. Among all evaluated configurations, SASRec
+combined with Gradient Ascent achieved the lowest Membership Inference Attack (MIA) AUC
+while preserving competitive recommendation accuracy, suggesting that optimization-based
+forgetting methods are well suited for modern deep recommendation architectures.
+The experiments additionally highlight that evaluating unlearning solely through aggregate
+recommendation accuracy is insufficient. Metrics such as Jaccard@10 similarity,
+recommendation drift, and activity-group fairness provide important insight into how unlearning
+affects real user experience. These analyses revealed that some methods can preserve overall
+accuracy while still causing large behavioral changes at the user level.
 
----
-
-## Repository Structure
-
-- `config.py` – configuration (paths, device, hyperparameters, number of groups, seed)  
-- `read.py` – data loading and preprocessing (MovieLens 1M → implicit feedback)  
-- `group.py` – creation of user groups/shards  
-- `main.py` – training, evaluation, and SISA-style unlearning logic  
-- `utils.py` – helper functions (metrics, seeding, saving, etc.)  
-- `experiments/` – optional scripts for ablations and comparisons  
-- `results/` – recommended folder to store logs/plots
-
----
+Overall, the findings suggest that approximate unlearning methods currently offer the most
+practical solution for recommendation systems, achieving strong privacy preservation with lower
+computational cost and reduced recommendation disruption. While exact approaches such as
+SISA remain theoretically appealing due to their stronger retraining guarantees, their scalability
+limitations and user-level side effects present significant challenges for deployment in large-
+scale recommendation platforms.
 
 ## How to Run
 
@@ -66,14 +82,6 @@ Test accuracy after unlearning: 0.4727
 
 This shows baseline performance and the effect of unlearning on a selected shard.
 
------
-
-## Demo we can show for now :
-
-1.  Full retrain vs SISA (S=5)
-2.  Effect of shards on accuracy: plot accuracy (S = 1,5,10)
-3.  Stratified vs Random sharding: stratified reduces accuracy drop on minority users.
-4.  A single unlearning demo : run `python main.py --group 5 --epochs 10 --unlearn_group 2` and show the printed retrain time and accuracy drop.
 
 ### Run Commands for Demo
 
@@ -88,67 +96,5 @@ python main.py --group 5 --epochs 20 > results/sisa5.log
 python main.py --group 5 --epochs 20 --unlearn_group 2 > results/unlearn_g2.log
 ```
 
------
-
-## Ideas to work on : (include what can be done from this )
-
-  * **The shrad based comparison**
-  * **Case studies exploration forgetting groups/users etc (to be figured out)** . We need to add graphs and results
-  * **Any original feature improvement /simple multi-agentic etc**
-  * **Show a simple attacker trying to infer whether a user was in training.** After unlearning, show reduced membership advantage. This or some attacks to show the difference in  movie recommendations after unlearning via metrics. (I think we should focus here)
-
-### Valuable metrics to compute & plot (some of these especially quality ones)
-
-  * **Model quality:** Accuracy (for your binary setup), but better: Precision@K, Recall@K, NDCG@K, HitRate@K. Use K = 5, 10.
-  * **Unlearning cost:** wall-clock retrain time (seconds), CPU/GPU utilization, number of parameters retrained.
-  * **Robustness:** accuracy drop after unlearning (init\_acc − post\_unlearn\_acc).
-  * **Fairness / minority impact:** per-user-group accuracy or distribution (e.g., low-activity users’ accuracy change).
-  * **Influence:** how many recommendations changed per unlearn request (count of changed top-K lists).
-  * **Stability:** variability across seeds (put error bars).
-
-### Good plots: (some can be added)
-
-  * Accuracy vs Number of Shards (with error bars).
-  * Retrain time vs Number of Shards.
-  * Accuracy before vs after unlearning (bar chart).
-  * Influence histogram (how many items changed when removing a user).
-  * Per-shard performance heatmap.
-  * Comparison table: Full retrain vs SISA vs SISA+checkpoints (if implemented).
-
-### This is something I want to include :
-
-1.  Compute top-K recommendations for each user before the event (baseline).
-2.  Trigger event: (a) forget a user (remove interactions) or (b) simulate attack (add malicious interactions).
-3.  Retrain (or unlearn via SISA) to get post-event model.
-4.  Compute top-K after.
-5.  Measure change with Jaccard@K between pre/post lists per user, and summarize (mean, histogram, fraction of users with Jaccard \< threshold). Optionally compute rank changes or NDCG delta.
-
------
-
-## Improvements (GPT just for reference so that we can add originality as we need to make it a bit different from original paper . Choose and explore if)
-
-### Core / required improvements (makes your prototype solid)
-
-  * **Fix training loop & logging** (use DataLoader, average loss, seed everything).
-  * **Per-shard models + ensemble:** train a model per shard and combine predictions (avg or weighted). This is the canonical SISA flow.
-  * **Implement slicing + checkpoints:** split each shard into R slices and save checkpoint after each slice. On unlearning of data in slice r, retrain only from checkpoint r. This is the main SISA optimization and your strongest demo point.
-  * **Measure retrain time precisely and log results to CSV** — then make the plots.
-
-### High-value, differentiating improvements (original & demonstrative)
-
-  * **Stratified sharding:** instead of random or purely KMeans, ensure class-balance / activity-balance per shard. Demonstrate that stratified shards reduce minority damage. (Good for report)
-  * **Prototype-based ensemble (ProtoSISA idea):** compute class / item centroids from shard embeddings and use prototype distances to augment ensemble predictions to recover accuracy lost by sharding. This is a lightweight original contribution.
-  * **Targeted unlearning policy / multi-agent scheduler:** implement a simple multi-agent system where each shard is an “agent” that reports a score (validation loss, time-to-retrain) and a coordinator agent decides which shards to retrain or whether to accept a forget request immediately or delay/aggregate it. This is novel & easy to present: you can show decisions & metrics in a dashboard.
-
-### Advanced but attractive ideas (show ML chops)
-
-  * **Transformer-based recommender option:** add an experimental transformer sequential recommender (e.g., SASRec or BERT4Rec) as an alternative baseline. You can then explore whether SISA-like sharding works for sequence models. This is more work but impressive.
-  * **Influence estimation:** implement an approximate influence score for users (e.g., change-in-loss heuristic) to prioritize retrains or to show which users are most harmful when deleted.
-  * **Adversarial / poisoning test:** insert poisoned interactions from a malicious user and show how quickly SISA can remove the effect by targeted unlearning. Very strong demo linking privacy/security.
-
-### 8\) Multi-agent ideas (brief — make them visual & simple)
-
-  * **Shard agents:** each shard exposes metrics (validation loss, last checkpoint time, size). A coordinator agent receives a forget request and decides which shard(s) to retrain first based on priority (influence + time cost). Show an interface where agents “vote” to retrain or defer.
-  * **Ensemble-weight agents:** after training, each shard agent proposes a weight for ensemble predictions (based on validation performance). A small RL agent could learn weights that maximize validation accuracy — but you can start with greedy / softmax weighting.
-  * **Active unlearning agent:** an agent that, given a budget (time/resources), chooses which forgotten requests to process first to minimize global harm. This is conceptual but great to present as future work.
+Notebook attached for reference for GA method 
 
