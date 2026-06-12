@@ -58,6 +58,31 @@ The project focuses on three practical questions:
 1. How much time does full retraining take after forgetting a user group?
 2. How much time does shard-only retraining take in a SISA-style setup?
 3. How do recommendation quality and privacy-related indicators change before and after unlearning?
+4. How stable are recommendation lists after unlearning, measured using Jaccard Similarity and Recommendation Drift?
+
+## Additional Analysis: Recommendation Stability
+
+An additional evaluation component was introduced to measure how much recommendation lists change after unlearning.
+
+### Jaccard Similarity
+
+Jaccard@K is used to compare recommendation lists before and after unlearning:
+
+\[
+J(A,B)=\frac{|A \cap B|}{|A \cup B|}
+\]
+
+where:
+- A = Top-K recommendations before unlearning
+- B = Top-K recommendations after unlearning
+
+Higher values indicate greater recommendation stability after the forgetting operation.
+
+### Recommendation Drift
+
+Recommendation Drift analysis measures the extent to which recommendation outputs change following unlearning. This provides a user-level view of model behavior that complements aggregate metrics such as Precision@K and NDCG@K.
+
+The inclusion of Jaccard Similarity and Recommendation Drift helps evaluate whether unlearning methods preserve recommendation consistency while removing the influence of forgotten data.
 
 ## Quick start
 
@@ -123,6 +148,8 @@ Running the experiment pipeline produces comparison metrics such as:
 - SISA train time
 - SISA unlearning time
 - Precision@5 / NDCG@5 before and after unlearning
+- Jaccard@K similarity before and after unlearning
+- Recommendation drift statistics
 
 This makes it easier to compare the cost and utility trade-offs of naive retraining versus shard-local unlearning.
 
